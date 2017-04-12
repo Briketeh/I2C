@@ -1,0 +1,46 @@
+#include "mbed.h"
+// #include "PCF8574.h"
+I2C i2c(p28, p27);
+
+const int osoite = 0x40;
+unsigned char suunta = 1; // suunta
+unsigned char edgeFLG = 0; // viimeisen ledin suunnanvaihdon muutos
+// ei käy static unsigned char data = 0x01; 
+
+int main() {
+    char cmd[2];
+    char cmd2[2];
+    cmd[0] = 0x03;
+    while (1) {
+        if (suunta) {
+            cmd[0] <<= 1;
+            if(edgeFLG){
+                cmd[0]|=0x01;
+                edgeFLG=0;    
+            }
+        }
+        else {
+            cmd[0] >>= 1;
+            if(edgeFLG){
+                cmd[0]|=0x80;
+                edgeFLG=0;    
+            }
+        } // suunnanvaihto
+        
+        if (cmd[0] == 0x80) {
+            suunta = 0;
+            edgeFLG=1;
+        }
+        if (cmd[0] == 0x01) {
+            suunta = 1;
+            edgeFLG=1;
+        }
+        
+        cmd2[0] = cmd[0];
+        cmd2[0] ^= 0xFF;
+        
+        i2c.write(osoite, cmd2, 1); // datan lähetys I2C:tä käyttäen
+ 
+        wait(0.5);
+    }
+}
